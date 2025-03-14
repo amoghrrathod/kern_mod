@@ -8,7 +8,7 @@
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Amogh");
-MODULE_DESCRIPTION("Kernel module to create a binary tree of child processes based on birthdays");
+MODULE_DESCRIPTION("Kernel module to create a binary tree of child processes based on birthdays and display memory segments");
 
 struct birthday {
     int day;
@@ -32,6 +32,8 @@ static struct birthday* insert(struct birthday *parent, int day, int month, int 
     node->next_level = NULL;
     node->same_level = NULL;
     
+    printk(KERN_INFO "Allocated memory at: %px for Birthday: %02d/%02d/%04d\n", node, day, month, year);
+    
     if (!parent) return node;
     
     struct birthday *temp = parent;
@@ -51,7 +53,7 @@ static void print_levels(struct birthday *node) {
         struct birthday *temp = current_level;
         printk(KERN_INFO "\nLevel %d:\n", level);
         while (temp) {
-            printk(KERN_INFO "%02d/%02d/%04d ", temp->day, temp->month, temp->year);
+            printk(KERN_INFO "Birthday: %02d/%02d/%04d at memory: %px\n", temp->day, temp->month, temp->year, temp);
             temp = temp->same_level;
             node_count++;
         }
@@ -94,6 +96,7 @@ static void free_tree(struct birthday *node) {
         struct birthday *next_level = node->next_level;
         while (node) {
             struct birthday *temp = node;
+            printk(KERN_INFO "Freeing memory at: %px\n", temp);
             node = node->same_level;
             kfree(temp);
         }
