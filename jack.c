@@ -44,15 +44,19 @@ static struct birthday* insert(struct birthday *parent, int day, int month, int 
 
 static void print_levels(struct birthday *node) {
     int level = 0;
+    int node_count = 0;
     while (node) {
         printk(KERN_INFO "\nLevel %d:\n", level);
         struct birthday *temp = node;
         while (temp) {
             printk(KERN_INFO "%02d/%02d/%04d ", temp->day, temp->month, temp->year);
             temp = temp->same_level;
+            node_count++;
+            if (node_count == 1 || node_count == 3 || node_count == 7) {
+                level++;
+            }
         }
         node = node->next_level;
-        level++;
     }
 }
 
