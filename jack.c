@@ -1,77 +1,82 @@
 #include <linux/init.h>
-#include <linux/kernel.h>
-#include <linux/kthread.h>
-#include <linux/mm.h>
 #include <linux/module.h>
-#include <linux/sched.h>
+#include <linux/kernel.h>
 #include <linux/slab.h>
+#include <linux/list.h>
+#include <linux/sched/signal.h>
+#include <linux/kthread.h>
+#include <linux/delay.h>
+#include <linux/sched/task.h>
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("AMOGH RATHOD");
-MODULE_DESCRIPTION("Jackfruit Problem");
+MODULE_AUTHOR("Your Name");
+MODULE_DESCRIPTION("Kernel module to create a tree of child processes based on birthdays");
 
-static struct task_struct *task;
+struct birthday {
+    int day;
+    int month;
+    int year;
+    struct list_head list;
+    struct task_struct *task;
+};
 
-// Function to print process tree with memory mappings
-void print_mmtree(struct task_struct *task, int depth) {
-    struct task_struct *child;
-    struct vm_area_struct *vma;
+static LIST_HEAD(task_list);
 
-    for (int i = 0; i < depth; i++) {
-        printk(KERN_INFO "   | ");
+int child_fn(void *data) {
+    struct birthday *bday = (struct birthday *)kmalloc(sizeof(struct birthday), GFP_KERNEL);
+    if (!b) {
+        printk(KERN_ERR "jackfruit: Memory allocation failed\n");
+        return -ENOMEM;
     }
-
-    printk(KERN_INFO "=> PID: %d, Parent PID: %d", task->pid,
-           task->real_parent ? task->real_parent->pid : -1);
-
-    // Memory Map (only if task->mm is not NULL)
-    if (task->mm) {
-        for (vma = task->mm->mmap; vma; vma = vma->vm_next) {
-            printk(KERN_INFO "%*cStart: %lx End: %lx Flags: %lx\n", depth * 2, ' ',
-                   vma->vm_start, vma->vm_end, vma->vm_flags);
-        }
-    } else {
-        printk(KERN_INFO "No memory map available for this process.");
-    }
-
-    list_for_each_entry(child, &task->children, sibling) {
-        print_mmtree(child, depth + 1);
-    }
-}
-
-// Child process function
-int child_proc(void *data) {
-    printk(KERN_INFO "Child process created!\n");
+    b->day = ((int *)data)[0];
+    b->month = ((int *)data)[1];
+    INIT_LIST_HEAD(&b->list);
+    list_add_tail(&b->list, &task_list);
+    do_exit(0);
     return 0;
 }
 
-// Function to create multiple child processes
-int create_children(void) {
-    int i;
-    for (i = 0; i < 5; i++) {
-        struct task_struct *child = kthread_run(child_proc, NULL, "child_thread_%d", i);
-        if (IS_ERR(child)) {
-            printk(KERN_ERR "Failed to create child process %d\n", i);
-        } else {
-            printk(KERN_INFO "Child process %d created successfully\n", i);
-        }
-    }
-    return 0;
-}
-
-// Kernel module initialization
 static int __init jack_init(void) {
-    printk(KERN_INFO "Hello JACK\n");
-    create_children();
-    printk(KERN_INFO "Printing Process Tree\n");
-    print_mmtree(current, 0);
+    struct task_struct *task;
+    struct birthday *b;
+    struct list_head *pos;
+    int dates[5][2] = {
+        {15, 1}, {10, 4}, {5, 6}, {12, 9}, {30, 12}};
+    
+    printk(KERN_INFO "JACKFRUIT Kernel Module Inserted: Creating Child Processes\n");
+    INIT_LIST_HEAD(&task_list);
+
+    for (int i = 0; i < 5; i++) {
+        struct birthday *b = kmalloc(sizeof(struct birthday), GFP_KERNEL);
+        if (!b) {
+            printk(KERN_ALERT "Memory allocation failed!\n");
+            return -ENOMEM;
+        }
+        b->day = birthdays[i][0];
+        b->month = birthdays[i][1];
+        INIT_LIST_HEAD(&b->list);
+        list_add_tail(&b->list, &task_list);
+    }
+    
+    struct birthday *pos;
+    list_for_each_entry(pos, &task_list, list) {
+        printk(KERN_INFO "Birthday: %02d/%02d\n", b->day, b->month);
+    }
+
     return 0;
 }
-
-// Kernel module cleanup
-static void __exit jack_exit(void) {
-    printk(KERN_INFO "Exiting Kernel: JACK.\n");
+static void __exit jack_exit(void)
+{
+    struct birthday *temp, *next;
+    list_for_each_entry_safe(temp, pos, &task_list, list) {
+        list_del(&temp->list);
+        kfree(temp);
+    }
+    printk(KERN_INFO "Removed all child processes and freed memory\n");
 }
 
-module_init(jack_init);
+module_init(jackfruit_init);
 module_exit(jack_exit);
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Your Name");
+MODULE_DESCRIPTION("Kernel module to create and manage a tree of child processes based on birthdays");
