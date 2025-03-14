@@ -1,0 +1,1 @@
+savedcmd_Module.symvers :=  /usr/lib/modules/6.13.6-1-aarch64-ARCH/build/scripts/mod/modpost -M        -o Module.symvers -T modules.order -i /usr/lib/modules/6.13.6-1-aarch64-ARCH/build/Module.symvers -e 
