@@ -5,6 +5,8 @@
 #include <linux/list.h>
 #include <linux/kthread.h>
 #include <linux/delay.h>
+#include <linux/mm.h>
+#include <linux/sched.h>
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Amogh");
@@ -33,6 +35,9 @@ static struct birthday* insert(struct birthday *parent, int day, int month, int 
     node->same_level = NULL;
     
     printk(KERN_INFO "Allocated memory at: %px for Birthday: %02d/%02d/%04d\n", node, day, month, year);
+    printk(KERN_INFO "Heap Segment: %px\n", node);
+    printk(KERN_INFO "Code Segment: %px\n", (void *)jack_init);
+    printk(KERN_INFO "Stack Segment: %px\n", (void *)&node);
     
     if (!parent) return node;
     
