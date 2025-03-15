@@ -78,7 +78,7 @@ static void print_birthdays(void) {
     printk(KERN_INFO "\nBirthday Tree:\n");
     while (temp) {
         int indent = temp->level * 4;
-        printk(KERN_INFO "%*s|- Birthday: %02d/%02d/%04d (Level %d, PID %d)\n", indent, "", temp->day, temp->month, temp->year, temp->level, temp->pid);
+        printk(KERN_INFO "%*s|- Birthday: %02d/%02d/%04d (Level %d, PID %d, Heap Segment: %px, Stack Segment: %px)\n", indent, "", temp->day, temp->month, temp->year, temp->level, temp->pid,temp,(void *)temp);
         temp = temp->next;
     }
 }
