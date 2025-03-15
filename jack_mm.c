@@ -1,15 +1,13 @@
 #include <linux/delay.h>
 #include <linux/init.h>
 #include <linux/kernel.h>
-#include <linux/kmod.h>
 #include <linux/kthread.h>
 #include <linux/list.h>
 #include <linux/mm.h>
 #include <linux/module.h>
 #include <linux/sched.h>
-#include <linux/sched/signal.h>
-#include <linux/sched/task.h>
 #include <linux/slab.h>
+#include <linux/kmod.h>
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Amogh");
@@ -22,7 +20,6 @@ struct birthday {
   int year;
   int level;
   pid_t pid;
-  struct task_struct *task;
   struct birthday *next;
 };
 
@@ -36,15 +33,20 @@ void execute_pmap(pid_t pid) {
   snprintf(pid_str, sizeof(pid_str), "%d", pid);
 
   printk(KERN_INFO "Executing pmap for PID: %s\n", pid_str);
-  call_usermodehelper(argv[0], argv, envp, UMH_WAIT_EXEC);
+  int ret = call_usermodehelper(argv[0], argv, envp, UMH_WAIT_PROC);
+  if (ret)
+    printk(KERN_ERR "pmap execution failed for PID %s with error %d\n", pid_str, ret);
+  else
+    printk(KERN_INFO "pmap execution succeeded for PID %s\n", pid_str);
 }
 
-static int dummy_thread_fn(void *data) {
-  struct birthday *bday = (struct birthday *)data;
-  if (!bday)
-    return -1;
-
-  bday->pid = current->pid;
+static int birthday_thread(void *data) {
+  struct birthday *node = (struct birthday *)data;
+  node->pid = current->pid;
+  printk(KERN_INFO
+         "Kernel thread started for Birthday: %02d/%02d/%04d (PID %d)\n",
+         node->day, node->month, node->year, node->pid);
+  execute_pmap(node->pid);
   return 0;
 }
 
@@ -59,12 +61,7 @@ static struct birthday *insert(int day, int month, int year, int level) {
   node->year = year;
   node->level = level;
   node->pid = -1;
-  node->task = NULL;
   node->next = NULL;
-
-  printk(KERN_INFO
-         "Allocated memory at: %px for Birthday: %02d/%02d/%04d (Level %d)\n",
-         node, day, month, year, level);
 
   if (!head ||
       (year < head->year ||
@@ -85,15 +82,7 @@ static struct birthday *insert(int day, int month, int year, int level) {
     temp->next = node;
   }
 
-  node->task =
-      kthread_create(dummy_thread_fn, node, "birthday_thread_%d", level);
-  if (IS_ERR(node->task)) {
-    printk(KERN_ERR "Failed to create kernel thread\n");
-    kfree(node);
-    return NULL;
-  }
-  wake_up_process(node->task);
-  node->pid = node->task->pid;
+  kthread_run(birthday_thread, node, "birthday_thread_%d", level);
   return node;
 }
 
@@ -112,18 +101,9 @@ static void print_birthdays(void) {
   printk(KERN_INFO "\nBirthday Tree:\n");
   while (temp) {
     int indent = temp->level * 4;
-    struct mm_struct *mm = temp->task->mm;
     printk(KERN_INFO "%*s|- Birthday: %02d/%02d/%04d (Level %d, PID %d)\n",
            indent, "", temp->day, temp->month, temp->year, temp->level,
            temp->pid);
-    if (mm) {
-      printk(KERN_INFO "%*s   Code Segment: %px - %px\n", indent, "",
-             (void *)mm->start_code, (void *)mm->end_code);
-      printk(KERN_INFO "%*s   Heap Segment: %px - %px\n", indent, "",
-             (void *)mm->start_brk, (void *)mm->brk);
-      printk(KERN_INFO "%*s   Stack Segment: %px\n", indent, "",
-             (void *)mm->start_stack);
-    }
     temp = temp->next;
   }
 }
@@ -156,6 +136,7 @@ static void free_list(void) {
 
 static void __exit jack_exit(void) {
   free_list();
+  printk(KERN_INFO "Code Segment: %px\n", (void *)jack_init);
   printk(KERN_INFO "Removed all child processes and freed memory\n");
 }
 
