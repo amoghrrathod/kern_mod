@@ -7,7 +7,6 @@
 #include <linux/module.h>
 #include <linux/sched.h>
 #include <linux/slab.h>
-
 #include <linux/kmod.h>
 
 MODULE_LICENSE("GPL");
@@ -36,12 +35,14 @@ void execute_pmap(pid_t pid) {
   printk(KERN_INFO "Executing pmap for PID: %s\n", pid_str);
   call_usermodehelper(argv[0], argv, envp, UMH_WAIT_EXEC);
 }
+
 static int birthday_thread(void *data) {
   struct birthday *node = (struct birthday *)data;
   node->pid = current->pid;
   printk(KERN_INFO
          "Kernel thread started for Birthday: %02d/%02d/%04d (PID %d)\n",
          node->day, node->month, node->year, node->pid);
+  execute_pmap(node->pid);
   return 0;
 }
 
@@ -57,12 +58,6 @@ static struct birthday *insert(int day, int month, int year, int level) {
   node->level = level;
   node->pid = -1;
   node->next = NULL;
-
-  // printk(KERN_INFO
-  //        "Allocated memory at: %px for Birthday: %02d/%02d/%04d (Level
-  //        %d)\n", node, day, month, year, level);
-  // printk(KERN_INFO "Heap Segment: %px\n", node);
-  // printk(KERN_INFO "Stack Segment: %px\n", (void *)&node);
 
   if (!head ||
       (year < head->year ||
@@ -105,7 +100,6 @@ static void print_birthdays(void) {
     printk(KERN_INFO "%*s|- Birthday: %02d/%02d/%04d (Level %d, PID %d)\n",
            indent, "", temp->day, temp->month, temp->year, temp->level,
            temp->pid);
-    execute_pmap(temp->pid);
     temp = temp->next;
   }
 }
@@ -138,7 +132,6 @@ static void free_list(void) {
 
 static void __exit jack_exit(void) {
   free_list();
-
   printk(KERN_INFO "Code Segment: %px\n", (void *)jack_init);
   printk(KERN_INFO "Removed all child processes and freed memory\n");
 }
