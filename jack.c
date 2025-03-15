@@ -11,7 +11,7 @@
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Amogh");
-MODULE_DESCRIPTION("Kernel module to create a linked list of child processes based on birthdays and display memory segments");
+MODULE_DESCRIPTION("Kernel module to create a sorted linked list of child processes based on birthdays and display memory segments");
 
 struct birthday {
     int day;
@@ -40,15 +40,27 @@ static struct birthday* insert(int day, int month, int year, int level) {
     printk(KERN_INFO "Code Segment: %px\n", (void *)jack_init);
     printk(KERN_INFO "Stack Segment: %px\n", (void *)&node);
     
-    if (!head) {
+    if (!head || (year < head->year || (year == head->year && (month < head->month || (month == head->month && day < head->day))))) {
+        node->next = head;
         head = node;
     } else {
         struct birthday *temp = head;
-        while (temp->next)
+        while (temp->next && (temp->next->year < year || (temp->next->year == year && (temp->next->month < month || (temp->next->month == month && temp->next->day < day))))) {
             temp = temp->next;
+        }
+        node->next = temp->next;
         temp->next = node;
     }
     return node;
+}
+
+static void assign_levels(void) {
+    struct birthday *temp = head;
+    int level = 0;
+    while (temp) {
+        temp->level = level++;
+        temp = temp->next;
+    }
 }
 
 static void print_birthdays(void) {
@@ -70,6 +82,7 @@ static int __init jack_init(void) {
         insert(dates[i][0], dates[i][1], dates[i][2], i);
     }
     
+    assign_levels();
     print_birthdays();
     printk(KERN_INFO "\n");
     return 0;
