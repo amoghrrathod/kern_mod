@@ -37,7 +37,7 @@ static struct birthday* insert(int day, int month, int year, int level) {
     
     printk(KERN_INFO "Allocated memory at: %px for Birthday: %02d/%02d/%04d (Level %d)\n", node, day, month, year, level);
     printk(KERN_INFO "Heap Segment: %px\n", node);
-    printk(KERN_INFO "Code Segment: %px\n", (void *)jack_init);
+    // printk(KERN_INFO "Code Segment: %px\n", (void *)&jack_init);
     printk(KERN_INFO "Stack Segment: %px\n", (void *)&node);
     
     if (!head || (year < head->year || (year == head->year && (month < head->month || (month == head->month && day < head->day))))) {
@@ -100,6 +100,7 @@ static void free_list(void) {
 
 static void __exit jack_exit(void) {
     free_list();
+    printk(KERN_INFO"Code Segment: %px\n", (void*)jack_init);
     printk(KERN_INFO "Removed all child processes and freed memory\n");
 }
 

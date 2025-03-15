@@ -1,0 +1,1 @@
+savedcmd_jack.ko := ld -r -EL  -maarch64elf -z noexecstack --no-warn-rwx-segments --build-id=sha1  -T /usr/lib/modules/6.13.6-1-aarch64-ARCH/build/scripts/module.lds -o jack.ko jack.o jack.mod.o .module-common.o
