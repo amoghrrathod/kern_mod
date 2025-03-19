@@ -1,0 +1,9 @@
+set menu_color_normal=light-cyan/black
+set menu_color_highlight=red/dark-gray
+set menu_border_width=2
+set menu_border_color=purple
+insmod font
+if loadfont /boot/grub/fonts/dejavu.pf2 ; then
+    set gfxmode=1920x1080
+    terminal_output gfxterm
+fi
